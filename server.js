@@ -2,57 +2,58 @@ const express = require('express');
 const app = express();
 const path = require('path');
 const fs = require('fs');
-const port = 3000;
 
-//middleware para entender JSON (necesario para guardar archivos de texto)
+const PORT = 3000;
+const HOME_DIR = path.join(__dirname, 'home');
+
+// Middleware
 app.use(express.json());
-
-//servir archivos estáticos del proyecto
 app.use(express.static(__dirname));
+app.use('/home', express.static(HOME_DIR));
 
-//servir específicamente la carpeta 'home' para que el navegador pueda acceder a los videos/musica
-app.use('/home', express.static(path.join(__dirname, 'home')));
+// === INICIALIZACIÓN ===
+// Verificamos y creamos la carpeta 'home' UNA sola vez al arrancar el servidor
+if (!fs.existsSync(HOME_DIR)) {
+    fs.mkdirSync(HOME_DIR, { recursive: true });
+    console.log(`[SYSTEM] Directorio creado: ${HOME_DIR}`);
+}
 
-//ruta 1: Obtener lista de archivos en la carpeta 'home'
+// === RUTAS ===
+
+// Listar archivos
 app.get('/api/files', (req, res) => {
-    const homeDir = path.join(__dirname, 'home');
-
-    //si la carpeta no existe, la crea automáticamente
-    if (!fs.existsSync(homeDir)) {
-        fs.mkdirSync(homeDir);
-    }
-
-    fs.readdir(homeDir, (err, files) => {
-        if (err) {
-            return res.status(500).json({ error: 'Error leyendo la carpeta home' });
-        }
+    fs.readdir(HOME_DIR, (err, files) => {
+        if (err) return res.status(500).json({ error: 'System error: Cannot read directory.' });
         res.json(files);
     });
 });
 
-//ruta 2: guardar cambios en un archivo de texto
+// Guardar archivo (Notepad)
 app.post('/api/save', (req, res) => {
     const { filename, content } = req.body;
-    //seguridad básica: evitar que guarden fuera de 'home'
-    const cleanFilename = path.basename(filename);
-    const filePath = path.join(__dirname, 'home', cleanFilename);
+
+    // Validación básica de seguridad
+    if (!filename || typeof content !== 'string') {
+        return res.status(400).send('Error: Invalid data.');
+    }
+
+    // path.basename evita que alguien guarde archivos fuera de 'home' (seguridad)
+    const safeFilename = path.basename(filename);
+    const filePath = path.join(HOME_DIR, safeFilename);
 
     fs.writeFile(filePath, content, 'utf8', (err) => {
-        if (err) {
-            return res.status(500).send('Error al guardar el archivo.');
-        }
-        console.log(`> Archivo guardado: ${cleanFilename}`);
-        res.send('Data Saved Successfully.');
+        if (err) return res.status(500).send('System Error: Write failed.');
+        console.log(`> File saved: ${safeFilename}`);
+        res.send('System: Data Saved Successfully.');
     });
 });
 
-//ruta principal
+// Ruta principal
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-//iniciar servidor
-app.listen(port, () => {
-    console.log(`> Acceso: http://localhost:${port}`);
-    console.log(`> Sincronizando carpeta: ${path.join(__dirname, 'home')}`);
+// Iniciar servidor
+app.listen(PORT, () => {
+    console.log(`> Wired Protocol Initiated: http://localhost:${PORT}`);
 });

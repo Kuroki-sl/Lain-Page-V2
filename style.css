@@ -2,7 +2,7 @@
     --bg-color: #000000;
     --lain-cyan: hsl(199, 88%, 36%);
     --lain-dark: #003f5c;
-    --text-white: #ffffffab;
+    --text-white: #ffffff98;
     --font-main: 'VT323', monospace;
     --btn-close: #1c5285;
     --btn-min: #1c5285;
@@ -29,7 +29,7 @@ body {
     width: 100vw;
     height: 100vh;
     background: black;
-    z-index: 10000;
+    z-index: 99999;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -67,7 +67,7 @@ body {
 
 .desktop-icon:hover .icon-label {
     background: var(--lain-cyan);
-    color: black;
+    color: rgba(0, 0, 0, 0.377);
 }
 
 .icon-img {
@@ -81,6 +81,12 @@ body {
     background: rgba(0, 0, 0, 0.7);
     padding: 2px;
     font-weight: bold;
+
+    /* Usamos !important para asegurar que nada lo sobrescriba */
+    color: rgba(255, 255, 255, 0.671) !important;
+
+    /* Opcional: una sombra negra para que se lea mejor sobre fondos claros */
+    text-shadow: 1px 1px 2px black;
 }
 
 /* === FILE LIST === */
@@ -298,7 +304,7 @@ body {
     min-width: 180px;
     padding: 5px 0;
     box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.5);
-    z-index: 2000;
+    z-index: 10000;
 }
 
 .menu-opt {
