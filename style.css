@@ -402,10 +402,9 @@ body {
     position: relative;
     top: -4px;
 }
-/* hasta aqui llegue ----------------------------------------------------------------------------------------------------------------------- */
 
 .video-mute-btn {
-    background: #1c5285;
+    background: #1c52857d;
     width: 14px !important;
 }
 
@@ -423,6 +422,7 @@ body {
     height: 67vh;
 }
 
+/* Chat */
 .chat-content {
     height: 100%;
     display: flex;
@@ -478,6 +478,7 @@ body {
     padding: 4px 10px;
 }
 
+/* Video */
 #win-video {
     width: 40vw;
     height: auto;
@@ -493,6 +494,26 @@ body {
     padding: 0;
 }
 
+.video-overlay-mute {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    background: none;
+    background: transparent;
+    border: none;
+    color: var(--lain-cyan);
+    font-size: 1rem;
+    cursor: pointer;
+    z-index: 10;
+    font-family: var(--font-main);
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.video-overlay-mute:hover {
+    transform: scale(1.2);
+    background: transparent;
+}
+/* Terminal */
 #win-terminal {
     width: 25vw;
     height: 20vh;
@@ -519,7 +540,7 @@ body {
     margin: 2px 0;
 }
 
-/* CONSOLE */
+/* Console */
 #win-console {
     width: 32vw;
     height: 20vh;
@@ -577,25 +598,4 @@ body {
     50% {
         opacity: 0;
     }
-}
-
-.video-overlay-mute {
-    position: absolute;
-    bottom: 15px;
-    right: 15px;
-    background: rgba(0, 0, 0, 0.6);
-    color: var(--lain-cyan);
-
-    font-size: 1rem;
-    cursor: pointer;
-    padding: 5px 10px;
-    z-index: 10;
-    font-family: var(--font-main);
-    transition: all 0.2s ease;
-}
-
-.video-overlay-mute:hover {
-    background: var(--lain-cyan);
-    color: black;
-    transform: scale(1.1);
 }
