@@ -245,6 +245,16 @@ body {
     background-size: 100% 4px;
     pointer-events: none;
     z-index: 9999;
+    animation: scroll-up 120s linear infinite;
+}
+
+@keyframes scroll-up {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 0 -400px; 
+    }
 }
 
 /* Barras */
