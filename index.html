@@ -14,10 +14,12 @@
     <div id="boot-screen">
         <div class="boot-content">
             <pre class="ascii-logo">
-   __      __   _____   ______   _____    ______   _____  
-  /  \    /  \ |     | |   ___| |     \  |   ___| |     \ 
-  \   \/\/   / |     | |   |__  |  --  | |   |__  |  --  |
-   \________/  |_____| |______| |_____/  |______| |_____/ 
+   _       _       
+  | |     (_)      
+  | | __ _ _ _ __  
+  | |/ _` | | '_ \ 
+  | | (_| | | | | |
+  |_|\__,_|_|_| |_|
             </pre>
             <p>COPLAND OS ENTERPRISE v1.02</p>
             <p>Checking memory... <span style="color:var(--lain-cyan)">OK</span></p>
@@ -42,9 +44,10 @@
             <div class="nav-item" onclick="toggleMenu('pass-menu')">AI lain Pass
                 <div id="pass-menu" class="dropdown-content">
                     <div class="menu-opt" onclick="openWindow('win-chat')">> Open Chat</div>
-                    <div class="menu-opt" onclick="openWindow('win-video')">> Open Video</div>
+
+                    <div class="menu-opt" onclick="openDefaultVideo()">> Open Video</div>
                     <div class="menu-opt" onclick="openWindow('win-terminal')">> Open Terminal</div>
-                    <div class="menu-opt" onclick="openWindow('win-console')">> Open Console</div>
+                    <div class="menu-opt" onclick="openDefaultAudio()">> Open Console</div>
                 </div>
             </div>
             <div class="nav-item" onclick="toggleMenu('about-menu')">About
@@ -59,7 +62,7 @@
 
     <main id="desktop-area">
 
-        <div class="desktop-icon" onclick="openWindow('win-home'); loadFiles()">
+        <div class="desktop-icon" onclick="openWindow('win-home')">
             <div class="icon-img">📁</div>
             <div class="icon-label glitch" data-text="HOME">HOME</div>
         </div>
@@ -157,19 +160,19 @@
             </div>
         </div>
 
-        <div id="win-video" class="draggable-window" style="top: 7%; left: 45%;">
+        <div id="win-video" class="draggable-window" style="top: 7%; left: 52%;">
             <div class="title-bar">
                 <div class="controls">
                     <span class="close-btn"></span>
                     <span class="minimize-btn"></span>
                 </div>
-                <div class="title glitch" data-text="[ Video ]">[ Video ]</div>
-                <div class="controls">
-                    <span class="video-mute-btn" title="Mute/Unmute">M</span>
-                </div>
+                <div class="title glitch" data-text="Video Player">Video Player</div>
+                <div class="controls"></div>
             </div>
-            <div class="window-content no-padding">
-                <video src="video.mp4" loop muted class="video-player"></video>
+
+            <div class="window-content no-padding" style="position: relative;">
+                <video class="video-player" loop></video>
+                <button id="video-overlay-mute" class="video-overlay-mute">🔇</button>
             </div>
         </div>
 

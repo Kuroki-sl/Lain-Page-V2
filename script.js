@@ -8,8 +8,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let highestZ = 100;
     let currentEditingFile = "";
 
-    // Estado de carga para sincronización
+    // Estado del sistema
     let isSystemStarted = false;
+    let hasAutoStartRun = false;
     let foundMusic = null;
     let foundVideo = null;
 
@@ -18,80 +19,73 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // === LÓGICA DE AUTO-INICIO ===
     function tryAutoStart() {
-        if (!isSystemStarted) return;
+        if (!isSystemStarted || hasAutoStartRun) return;
 
-        // Reproducir Música
-        if (foundMusic && audioPlayer.paused) {
+        // Auto-Music
+        if (foundMusic) {
             audioPlayer.src = foundMusic;
             audioPlayer.volume = 0.5;
             audioPlayer.play()
                 .then(() => initAudioSystem())
-                .catch(e => { /* Audio bloqueado o error menor */ });
+                .catch(e => { console.log("Audio autoplay prevented"); });
         }
 
-        // Reproducir Video
+        // Auto-Video
         if (foundVideo) {
             const vid = document.querySelector('.video-player');
-            if (vid && (vid.paused || vid.currentTime === 0)) {
+            const muteBtn = document.getElementById('video-overlay-mute');
+
+            if (vid) {
                 vid.src = foundVideo;
                 openWindow('win-video');
-
-                // Intentar reproducir con sonido, si falla, silenciar
                 vid.muted = true;
-                vid.play().catch(() => {
-                    vid.muted = true;
-                    vid.play().catch(e => { });
-                });
+                if (muteBtn) muteBtn.innerText = '🔇';
+                vid.play().catch(e => { console.log("Video autoplay blocked", e) });
             }
         }
+        hasAutoStartRun = true;
     }
 
-    // === SECUENCIA DE ARRANQUE (CLIC DEL USUARIO) ===
+    // === SECUENCIA DE ARRANQUE ===
     bootScreen.addEventListener('click', () => {
         bootScreen.style.opacity = '0';
         setTimeout(() => bootScreen.style.display = 'none', 1000);
-
         triggerRandomGlitch();
         initAudioSystem();
-
-        isSystemStarted = true; // Marcar sistema como iniciado
-        tryAutoStart();         // Intentar reproducir medios
+        isSystemStarted = true;
+        tryAutoStart();
     });
 
     // === SISTEMA DE ARCHIVOS ===
     window.loadFiles = function () {
-        fetch('/api/files')
+        fetch('/api/files?t=' + new Date().getTime())
             .then(res => res.json())
             .then(files => {
                 const container = document.getElementById('file-list');
                 container.innerHTML = "";
+                const timeStamp = "?t=" + new Date().getTime();
 
-                // Detección y Configuración de Archivos
+                // Guardar rutas
                 if (files.includes('fondo.jpg')) {
-                    document.querySelector('.desktop-background').style.backgroundImage = "url('/home/fondo.jpg')";
+                    document.querySelector('.desktop-background').style.backgroundImage = `url('/home/fondo.jpg${timeStamp}')`;
                 }
                 if (files.includes('musica.mp3')) {
-                    foundMusic = "/home/musica.mp3";
+                    foundMusic = `/home/musica.mp3${timeStamp}`;
                 }
                 if (files.includes('video.mp4')) {
-                    foundVideo = "/home/video.mp4";
+                    foundVideo = `/home/video.mp4${timeStamp}`;
                 }
 
-                // Intentar reproducir si el usuario ya inició sesión
-                if (isSystemStarted) {
-                    tryAutoStart();
-                }
+                if (isSystemStarted) tryAutoStart();
 
                 if (files.length === 0) {
                     container.innerHTML = "<p style='width:100%'>Directory empty.</p>";
                     return;
                 }
 
-                // Generar Iconos
                 files.forEach(file => {
                     const div = document.createElement('div');
                     div.className = 'file-item';
-
                     let icon = "📄";
                     const ext = file.split('.').pop().toLowerCase();
                     if (ext === 'mp3') icon = "🎵";
@@ -99,23 +93,26 @@ document.addEventListener("DOMContentLoaded", () => {
                     else if (['jpg', 'png', 'gif', 'jpeg'].includes(ext)) icon = "🖼️";
 
                     div.innerHTML = `<span class="file-icon">${icon}</span><span class="file-name">${file}</span>`;
-                    div.onclick = () => openFile(file);
+                    div.onclick = () => openFile(file, timeStamp);
                     container.appendChild(div);
                 });
             })
             .catch(err => console.error(err));
     };
 
-    // Iniciar escaneo al cargar la página
-    loadFiles();
+    loadFiles(); // Carga inicial
 
     // === MANEJADORES DE ARCHIVOS ===
     const fileHandlers = {
         mp4: (path) => {
             openWindow('win-video');
             const video = document.querySelector('#win-video video');
+            const muteBtn = document.getElementById('video-overlay-mute');
+
             video.src = path;
-            video.muted = false;
+            video.currentTime = 0;
+            video.muted = true;
+            if (muteBtn) muteBtn.innerText = '🔇';
             video.play().catch(e => { });
         },
         mp3: (path) => {
@@ -142,16 +139,120 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    function openFile(filename) {
+    function openFile(filename, timeStamp = "") {
         const ext = filename.split('.').pop().toLowerCase();
-        const path = `/home/${filename}`;
+        const path = `/home/${filename}${timeStamp}`;
         const type = ['jpg', 'jpeg', 'png', 'gif'].includes(ext) ? 'img' : ext;
 
         if (fileHandlers[type]) fileHandlers[type](path, filename);
         else alert("System Error: Unknown format protocol.");
     }
 
-    // === INTERFAZ Y EVENTOS ===
+    // === GESTIÓN DE VENTANAS ===
+    function bringToFront(win) {
+        highestZ++;
+        win.style.zIndex = highestZ;
+    }
+
+    window.openWindow = function (windowId) {
+        const win = document.getElementById(windowId);
+        if (!win) return;
+
+        // 1. Mostrar ventana visualmente
+        win.style.display = 'flex';
+        win.classList.remove('minimizing');
+        bringToFront(win);
+
+        // 2. Eliminar botón de la barra de tareas si existe
+        const existingTaskItem = document.querySelector(`.taskbar-item[data-win-id="${windowId}"]`);
+        if (existingTaskItem) existingTaskItem.remove();
+
+        // 3. Reanudar medios automáticamente (Descongelar)
+        const media = win.querySelectorAll('video, audio');
+        media.forEach(m => {
+            if (m.getAttribute('src') || m.src) {
+                m.play().catch(e => { });
+            }
+        });
+
+        // 4. Efecto Pop visual
+        win.style.transform = "scale(1.02)";
+        setTimeout(() => win.style.transform = "scale(1)", 150);
+        document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
+    };
+
+    function minimizeWindow(win) {
+        win.classList.add('minimizing');
+
+        const media = win.querySelectorAll('video, audio');
+        media.forEach(m => m.pause());
+
+        const titleEl = win.querySelector('.title');
+        const winTitle = titleEl.getAttribute('data-text') || titleEl.innerText;
+
+        const taskItem = document.createElement('div');
+        taskItem.className = 'taskbar-item';
+        taskItem.innerText = winTitle;
+        taskItem.setAttribute('data-win-id', win.id);
+
+        taskItem.onclick = () => {
+            window.openWindow(win.id);
+        };
+
+        taskbarArea.appendChild(taskItem);
+        setTimeout(() => win.style.display = 'none', 300);
+    }
+
+    function closeWindow(win) {
+        win.style.display = 'none';
+        const media = win.querySelectorAll('video, audio');
+        media.forEach(m => {
+            m.pause();
+            m.currentTime = 0;
+        });
+    }
+
+    // === FUNCIONES INTELIGENTES PARA EL MENÚ SUPERIOR ===
+
+    window.openDefaultVideo = function () {
+        const winId = 'win-video';
+        const win = document.getElementById(winId);
+        const isVisible = win.style.display !== 'none' && !win.classList.contains('minimizing');
+        const isMinimized = document.querySelector(`.taskbar-item[data-win-id="${winId}"]`);
+
+        openWindow(winId);
+
+        if (!isVisible && !isMinimized) {
+            const video = document.querySelector('#win-video video');
+            const muteBtn = document.getElementById('video-overlay-mute');
+            if (foundVideo) {
+                video.src = foundVideo;
+                video.currentTime = 0;
+                video.muted = true;
+                if (muteBtn) muteBtn.innerText = '🔇';
+                video.play().catch(e => { });
+            }
+        }
+    };
+
+    window.openDefaultAudio = function () {
+        const winId = 'win-console';
+        const win = document.getElementById(winId);
+        const isVisible = win.style.display !== 'none' && !win.classList.contains('minimizing');
+        const isMinimized = document.querySelector(`.taskbar-item[data-win-id="${winId}"]`);
+
+        openWindow(winId);
+
+        if (!isVisible && !isMinimized) {
+            if (foundMusic) {
+                audioPlayer.src = foundMusic;
+                audioPlayer.currentTime = 0;
+                audioPlayer.play().then(() => initAudioSystem()).catch(e => { });
+            }
+        }
+    };
+
+    // === EVENT LISTENERS ===
     document.addEventListener('mousedown', (e) => {
         const win = e.target.closest('.draggable-window');
         if (win) bringToFront(win);
@@ -164,85 +265,38 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (e.target.classList.contains('minimize-btn')) {
             minimizeWindow(e.target.closest('.draggable-window'));
         }
-        else if (e.target.classList.contains('video-mute-btn')) {
+        else if (e.target.classList.contains('video-overlay-mute')) {
             toggleVideoMute(e.target.closest('.draggable-window'), e.target);
         }
     });
 
-    // Inicializar arrastre
     document.querySelectorAll('.draggable-window').forEach(win => {
         const titleBar = win.querySelector('.title-bar');
         if (titleBar) dragElement(win, titleBar);
     });
 
-    // Funciones de Ventana
-    function bringToFront(win) {
-        highestZ++;
-        win.style.zIndex = highestZ;
-    }
-
-    function closeWindow(win) {
-        win.style.display = 'none';
-        toggleMedia(win, false);
-    }
-
-    function minimizeWindow(win) {
-        win.classList.add('minimizing');
-        toggleMedia(win, false);
-
-        const titleEl = win.querySelector('.title');
-        const winTitle = titleEl.getAttribute('data-text') || titleEl.innerText;
-
-        const taskItem = document.createElement('div');
-        taskItem.className = 'taskbar-item';
-        taskItem.innerText = winTitle;
-        taskItem.onclick = () => {
-            taskItem.remove();
-            win.style.display = 'flex';
-            bringToFront(win);
-            setTimeout(() => {
-                win.classList.remove('minimizing');
-                toggleMedia(win, true);
-            }, 10);
-        };
-        taskbarArea.appendChild(taskItem);
-        setTimeout(() => win.style.display = 'none', 300);
-    }
-
     function toggleVideoMute(win, btn) {
         const vid = win.querySelector('video');
         if (vid) {
             vid.muted = !vid.muted;
-            btn.style.background = vid.muted ? '#1c5285' : 'var(--lain-cyan)';
-            btn.style.color = vid.muted ? 'white' : 'black';
+            btn.innerText = vid.muted ? '🔇' : '🔊';
         }
     }
 
-    window.openWindow = function (windowId) {
-        const win = document.getElementById(windowId);
-        if (!win) return;
-
-        if (win.style.display === 'none' || win.classList.contains('minimizing')) {
-            win.style.display = 'flex';
-            win.classList.remove('minimizing');
+    // === RELOJ (NUEVO CÓDIGO AÑADIDO) ===
+    function updateClock() {
+        const now = new Date();
+        const clockEl = document.getElementById('clock');
+        if (clockEl) {
+            // Formato de hora local (HH:MM:SS)
+            clockEl.innerText = now.toLocaleTimeString();
         }
-        bringToFront(win);
-
-        // Efecto Pop
-        win.style.transform = "scale(1.02)";
-        setTimeout(() => win.style.transform = "scale(1)", 150);
-        document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
-    };
-
-    function toggleMedia(win, shouldPlay) {
-        const media = win.querySelectorAll('video, audio');
-        media.forEach(m => {
-            if (shouldPlay) m.play().catch(() => { });
-            else m.pause();
-        });
     }
+    // Actualizar cada segundo
+    setInterval(updateClock, 1000);
+    updateClock(); // Primera llamada inmediata
 
-    // === TERMINAL ===
+    // === UTILS ===
     const termInput = document.getElementById('term-input');
     const termCommands = {
         help: () => printToTerminal("COMMANDS: help, clear, whoami, lain, date, exit, close the world"),
@@ -260,12 +314,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (e.key === 'Enter') {
                 const inputVal = this.value.toLowerCase().trim();
                 printToTerminal(`user@wired:~$ ${this.value}`);
-
                 if (termCommands[inputVal]) termCommands[inputVal]();
                 else if (inputVal !== "") printToTerminal(`Command '${inputVal}' not found.`);
-
                 this.value = "";
-                termLog.scrollTop = termLog.scrollHeight; // Scroll automático al final
+                termLog.scrollTop = termLog.scrollHeight;
             }
         });
     }
@@ -278,18 +330,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function triggerEasterEgg() {
         printToTerminal("INITIATING PROTOCOL...");
+
         setTimeout(() => {
             document.body.style.transition = "filter 3s, transform 3s";
             document.body.style.filter = "invert(1) hue-rotate(180deg) contrast(1.5)";
             document.body.style.transform = "scale(1.1)";
+
             document.querySelectorAll('div, p, span').forEach(el => {
                 if (el.children.length === 0 && el.innerText.trim().length > 0)
                     el.innerText = "NO MATTER WHERE YOU ARE, EVERYONE IS ALWAYS CONNECTED";
             });
+
+            setTimeout(() => {
+                document.body.style.transform = "scale(1)";
+            }, 2000);
+
         }, 1500);
     }
 
-    // === NOTEPAD SAVE ===
     const saveBtn = document.getElementById('save-btn');
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
@@ -306,7 +364,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // === AUDIO VISUALIZER ===
     function initAudioSystem() {
         if (audioCtx) return;
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -322,20 +379,15 @@ document.addEventListener("DOMContentLoaded", () => {
     function visualizeAudio() {
         if (!analyser) return;
         requestAnimationFrame(visualizeAudio);
-
         const canvas = document.getElementById('audio-visualizer');
         const ctx = canvas.getContext('2d');
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-
         analyser.getByteFrequencyData(dataArray);
-
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         const barWidth = (canvas.width / bufferLength) * 2.5;
         let x = 0;
-
         for (let i = 0; i < bufferLength; i++) {
             let barHeight = dataArray[i] / 2;
             ctx.fillStyle = '#009fe9b4';
@@ -344,7 +396,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // === GLITCH & DRAG ===
     function triggerRandomGlitch() {
         const glitchElements = document.querySelectorAll('.glitch');
         if (glitchElements.length > 0) {
@@ -381,7 +432,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // === CHAT SIMULADO ===
     const chatInput = document.getElementById('chat-input');
     const chatHistory = document.getElementById('chat-history');
     if (document.querySelector('.send-btn')) {
@@ -409,7 +459,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// === FUNCIONES GLOBALES (ONCLICK HTML) ===
 function toggleMenu(id) {
     const menu = document.getElementById(id);
     const isVisible = menu.style.display === 'block';

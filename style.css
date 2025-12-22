@@ -437,7 +437,6 @@ body {
     margin-bottom: 0vh;
 }
 
-/* CHAT FIXED */
 #chat-history {
     flex-grow: 1;
     overflow-y: auto;
@@ -578,4 +577,25 @@ body {
     50% {
         opacity: 0;
     }
+}
+
+.video-overlay-mute {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--lain-cyan);
+
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    z-index: 10;
+    font-family: var(--font-main);
+    transition: all 0.2s ease;
+}
+
+.video-overlay-mute:hover {
+    background: var(--lain-cyan);
+    color: black;
+    transform: scale(1.1);
 }
