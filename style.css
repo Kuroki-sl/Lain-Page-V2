@@ -21,7 +21,7 @@ body {
     flex-direction: column;
 }
 
-/* === BOOT SCREEN === */
+/* Pantalla de inicio */
 #boot-screen {
     position: fixed;
     top: 0;
@@ -49,7 +49,7 @@ body {
     margin-bottom: 20px;
 }
 
-/* === DESKTOP ICONS === */
+/* Carpeta HOME */
 .desktop-icon {
     position: absolute;
     top: 40px;
@@ -81,15 +81,11 @@ body {
     background: rgba(0, 0, 0, 0.7);
     padding: 2px;
     font-weight: bold;
-
-    /* Usamos !important para asegurar que nada lo sobrescriba */
     color: rgba(255, 255, 255, 0.671) !important;
-
-    /* Opcional: una sombra negra para que se lea mejor sobre fondos claros */
     text-shadow: 1px 1px 2px black;
 }
 
-/* === FILE LIST === */
+/* Contenido de HOME */
 #file-list {
     display: flex;
     flex-wrap: wrap;
@@ -123,7 +119,7 @@ body {
     margin-top: 5px;
 }
 
-/* === NOTEPAD === */
+/* txt */
 #notepad-content {
     width: 100%;
     flex-grow: 1;
@@ -137,13 +133,12 @@ body {
     padding: 10px;
 }
 
-/* === GLITCH EFFECT (SISTEMA ALEATORIO) === */
+/* Efecto gitch */
 .glitch {
     position: relative;
     color: black;
 }
 
-/* Por defecto, las capas del glitch están OCULTAS (display: none) */
 .glitch::before,
 .glitch::after {
     content: attr(data-text);
@@ -157,7 +152,6 @@ body {
     display: none;
 }
 
-/* Solo se muestran cuando JS añade la clase '.glitch-active' */
 .glitch.glitch-active::before {
     display: block;
     left: 2px;
@@ -226,7 +220,7 @@ body {
     }
 }
 
-/* === RESTO DE ESTILOS === */
+/* Fondo de pantalla */
 .desktop-background {
     position: fixed;
     top: 0;
@@ -240,6 +234,7 @@ body {
     z-index: -2;
 }
 
+/* Efecto tele de tuvo */
 .scanlines {
     position: fixed;
     top: 0;
@@ -252,6 +247,7 @@ body {
     z-index: 9999;
 }
 
+/* Barras */
 .top-bar,
 .bottom-bar {
     background: var(--lain-cyan);
@@ -293,6 +289,7 @@ body {
     color: var(--lain-cyan);
 }
 
+/* Menu desplegable */
 .dropdown-content {
     display: none;
     position: absolute;
@@ -338,6 +335,7 @@ body {
     color: black;
 }
 
+/* Arrastre de ventanas */
 .draggable-window {
     position: absolute;
     background: black;
@@ -354,6 +352,7 @@ body {
     pointer-events: none;
 }
 
+/* Barra de cada ventana */
 .title-bar {
     background: var(--lain-cyan);
     color: black;
